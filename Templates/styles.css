@@ -4,22 +4,38 @@ body {
     padding: 0;
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
 }
 
-.login-container {
-    padding: 20px;
+.container {
     border: 1px solid gray;
     border-radius: 15px;
     background-color: rgb(38, 38, 38);
     color: white;
+    box-sizing: border-box;
+}
+
+.container td, th{
+    margin-top: 15px;
+    padding: 5px;
+    border: 2px solid #aa7326;
+}
+
+.container table{
+    border-collapse: collapse;
+}
+
+div.container {
+    margin-top: 10px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     min-width: 300px;
     max-width: 400px;
     width: 100%;
-    box-sizing: border-box;
+
 }
 
 label {
@@ -45,7 +61,8 @@ label {
 
 button.block_element {
     background: #d38f2f;
-    border: none;
+    border: 1px solid;
+    border-color: #aa7326;
     padding: 10px;
     margin-top: 20px;
     cursor: pointer;
@@ -58,6 +75,11 @@ button.block_element:hover {
 
 button.block_element:active {
     background: #aa7326;
+}
+
+button.block_element:focus{
+    border-color: #000cf6;
+    border-width: 2px;
 }
 
 input.block_element {
