@@ -23,6 +23,10 @@ body {
     border: 2px solid #aa7326;
 }
 
+table.container{
+    border-collapse: collapse;
+}
+
 .container table{
     border-collapse: collapse;
 }

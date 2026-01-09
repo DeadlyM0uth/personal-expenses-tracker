@@ -6,34 +6,67 @@
     <link rel="stylesheet" href="static/css/styles.css">
 </head>
 <body>
-    {% if users $}
+    {% if expanses and expanses.len > 0 %}
+        <table class="container" id="expansesTable">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Сумма</th>
+                    <th>Категория</th>
+                    <th>Способ оплаты</th>
+                    <th>Комментарий</th>
+                </tr>
+            </thead>
+        </table>
         <div class="container">
-            <label for="username" id="labelUsername">
-                Введите имя пользователя
-            </label>
-            <input class="block_element" type="text" id="username" tabindex="0" aria-label="labelUsername">
-            
-            <button class="block_element submit-btn" tabindex="0">
-                Войти/Зарегистрироваться
-            </button>
-
+            <input class="block_element" type="datetime" id="startDate" tabindex="0" aria-label="dateBegin">
+            <input class="block_element" type="datetime" id="endDate" tabindex="0" aria-label="dateEnd">
+            <input class="block_element" type="text" id="expanseCategory" tabindex="0" aria-label="expanseCategory">
         </div>
-        <div class="container">
-            <table>
-                <thead>
-                    <th>Имя пользователя:</th>
-                    <th>Расходы за последний месяц:</th>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr>
-                        <td>user.name</td>
-                        <td>user.lastMonhtExpensesSum</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-    </div>
+        <script>
+            const expansesData = {{ expanses|json }}
+            const table = document.getElementById("expansesTable");
+            function renderTable(){
+                const targetCategory = document.getElementById("expanseCategory");
+                const startDate = new Date(document.getElementById("startDate"));
+                const endDate = new Date(document.getElementById("endDate"));
+
+                table.querySelector('tbody').innerHTML('');
+                let filteredData = expansesData.filtered(e => e.category === targetCategory && 
+                                                        (e.date >= startDate && e.date <= endDate));
+                
+                filteredData.array.forEach(item => {
+                        // Создаем новую строку
+                        const row = document.createElement('tr');
+                        
+                        // Создаем и заполняем ячейки
+                        const dateCell = document.createElement('td');
+                        nameCell.textContent = item.date;
+    
+                        const sumCell = document.createElement('td');
+                        ageCell.textContent = item.sum;
+                        
+                        const categoryCell = document.createElement('td');
+                        cityCell.textContent = item.category;
+
+                        const paymentMethodCell = document.createElement('td');
+                        cityCell.textContent = item.paymentMethod;
+
+                        const commentCell = document.createElement('td');
+                        cityCell.textContent = item.comment;
+                        
+                        // Добавляем ячейки в строку
+                        row.appendChild(dateCell);
+                        row.appendChild(sumCell);
+                        row.appendChild(categoryCell);
+                        row.appendChild(paymentMethodCell);
+                        row.appendChild(commentCell);
+                        
+                        // Добавляем строку в таблицу
+                        tableBody.appendChild(row);
+                });
+            }
+        </script>
     {% else %}
         <div class="container">
             <p>Ошибка</p>
