@@ -1,23 +1,25 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="static/css/styles.css">
 </head>
+
 <body>
     <div class="container">
         <label for="username" id="labelUsername">
             Введите имя пользователя
         </label>
         <input class="block_element" type="text" id="username" tabindex="0" aria-label="labelUsername">
-        
+
         <button class="block_element submit-btn" tabindex="0">
             Войти/Зарегистрироваться
         </button>
 
     </div>
-     <div class="container">
+    <div class="container">
         <table>
             <thead>
                 <th>Имя пользователя:</th>
@@ -26,12 +28,13 @@
             <tbody>
                 {% for user in users %}
                 <tr>
-                    <td>user.name</td>
-                    <td>user.lastMonhtExpensesSum</td>
+                    <td>{{user.name}}</td>
+                    <td>{{user.lastMonhtExpensesSum}}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-   </div>
+    </div>
 </body>
+
 </html>
