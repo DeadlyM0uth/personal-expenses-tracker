@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify
+from datetime import datetime, timedelta
 from flask_login import LoginManager
 from models import db, User, Expense
 
@@ -11,6 +12,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///expenses.db'
 
 db.init_app(app)
 
+with app.app_context():
+    db.create_all()
+
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.init_app(app)
@@ -21,7 +25,21 @@ def load_user(user_id):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    users = User.query.all()
+    users_data = []
+    # Logic for "last month" - simplified to last 30 days
+    now = datetime.utcnow()
+    month_ago = now - timedelta(days=30)
+
+    for user in users:
+        # accessing user.expenses triggers the SQL query due to lazy loading
+        expenses_sum = sum(e.amount for e in user.expenses if e.date and e.date >= month_ago)
+        users_data.append({
+            "name": user.username,
+            "lastMonhtExpensesSum": round(expenses_sum, 2)
+        })
+
+    return render_template("index.html", users=users_data)
 
 # --- USER ENDPOINTS ---
 
