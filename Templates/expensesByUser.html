@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="static/css/styles.css">
 </head>
 <body>
-    {% if users and users|length > 0 %}
+    {% if users $}
         <div class="container">
             <label for="username" id="labelUsername">
                 Введите имя пользователя
@@ -21,16 +21,14 @@
         <div class="container">
             <table>
                 <thead>
-                    <tr>
-                        <th>Имя пользователя:</th>
-                        <th>Расходы за последний месяц:</th>
-                    </tr>
+                    <th>Имя пользователя:</th>
+                    <th>Расходы за последний месяц:</th>
                 </thead>
                 <tbody>
                     {% for user in users %}
                     <tr>
-                        <td>{{ user.name }}</td>
-                        <td>{{ user.lastMonthExpensesSum }}</td>
+                        <td>user.name</td>
+                        <td>user.lastMonhtExpensesSum</td>
                     </tr>
                     {% endfor %}
                 </tbody>
