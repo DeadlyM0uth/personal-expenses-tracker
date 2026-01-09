@@ -22,49 +22,65 @@
             <input class="block_element" type="datetime" id="startDate" tabindex="0" aria-label="dateBegin">
             <input class="block_element" type="datetime" id="endDate" tabindex="0" aria-label="dateEnd">
             <input class="block_element" type="text" id="expanseCategory" tabindex="0" aria-label="expanseCategory">
+            <button id="acceptFilter">Применить</button>
         </div>
         <script>
             const expansesData = {{ expanses|json }}
             const table = document.getElementById("expansesTable");
-            function renderTable(){
-                const targetCategory = document.getElementById("expanseCategory");
-                const startDate = new Date(document.getElementById("startDate"));
-                const endDate = new Date(document.getElementById("endDate"));
 
-                table.querySelector('tbody').innerHTML('');
-                let filteredData = expansesData.filtered(e => e.category === targetCategory && 
-                                                        (e.date >= startDate && e.date <= endDate));
+            
+            function renderTable(data){
                 
-                filteredData.array.forEach(item => {
-                        // Создаем новую строку
-                        const row = document.createElement('tr');
-                        
-                        // Создаем и заполняем ячейки
-                        const dateCell = document.createElement('td');
-                        nameCell.textContent = item.date;
-    
-                        const sumCell = document.createElement('td');
-                        ageCell.textContent = item.sum;
-                        
-                        const categoryCell = document.createElement('td');
-                        cityCell.textContent = item.category;
-
-                        const paymentMethodCell = document.createElement('td');
-                        cityCell.textContent = item.paymentMethod;
-
-                        const commentCell = document.createElement('td');
-                        cityCell.textContent = item.comment;
-                        
-                        // Добавляем ячейки в строку
-                        row.appendChild(dateCell);
-                        row.appendChild(sumCell);
-                        row.appendChild(categoryCell);
-                        row.appendChild(paymentMethodCell);
-                        row.appendChild(commentCell);
-                        
-                        // Добавляем строку в таблицу
-                        tableBody.appendChild(row);
+                
+                table.querySelector('tbody').innerHTML('');
+                
+                data.array.forEach(item => {
+                    // Создаем новую строку
+                    const row = document.createElement('tr');
+                    
+                    // Создаем и заполняем ячейки
+                    const dateCell = document.createElement('td');
+                    nameCell.textContent = item.date;
+                    
+                    const sumCell = document.createElement('td');
+                    ageCell.textContent = item.sum;
+                    
+                    const categoryCell = document.createElement('td');
+                    cityCell.textContent = item.category;
+                    
+                    const paymentMethodCell = document.createElement('td');
+                    cityCell.textContent = item.paymentMethod;
+                    
+                    const commentCell = document.createElement('td');
+                    cityCell.textContent = item.comment;
+                    
+                    // Добавляем ячейки в строку
+                    row.appendChild(dateCell);
+                    row.appendChild(sumCell);
+                    row.appendChild(categoryCell);
+                    row.appendChild(paymentMethodCell);
+                    row.appendChild(commentCell);
+                    
+                    // Добавляем строку в таблицу
+                    tableBody.appendChild(row);
                 });
+                
+                function expansesFiltering(){
+                    const targetCategory = document.getElementById("expanseCategory").value;
+                    const startDate = new Date(document.getElementById("startDate").value);
+                    const endDate = new Date(document.getElementById("endDate").value);
+                    
+                    return expansesData.filtered(e => 
+                        (e.category === targetCategory || !targetCategory) && 
+                        ((e.date >= startDate && e.date <= endDate) || !startDate || !endDate)
+                    )
+
+                }
+
+                document.getElementById("acceptFilter").addEventListener('click', () => {
+                    renderTable(expansesFiltering());
+                });
+
             }
         </script>
     {% else %}
