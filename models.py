@@ -16,6 +16,12 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username
+        }
+
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Float, nullable=False)
@@ -26,3 +32,14 @@ class Expense(db.Model):
     
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     user = db.relationship('User', backref=db.backref('expenses', lazy=True))
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "amount": self.amount,
+            "category": self.category,
+            "date": self.date.isoformat() if self.date else None,
+            "comment": self.comment,
+            "payment_method": self.payment_method,
+            "user_id": self.user_id
+        }
