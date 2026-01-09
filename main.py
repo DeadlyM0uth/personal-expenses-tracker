@@ -1,6 +1,6 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from datetime import datetime, timedelta
-from flask_login import LoginManager
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Expense
 
 #чтобы запустить введи:
@@ -36,10 +36,63 @@ def index():
         expenses_sum = sum(e.amount for e in user.expenses if e.date and e.date >= month_ago)
         users_data.append({
             "name": user.username,
-            "lastMonhtExpensesSum": round(expenses_sum, 2)
+            "lastMonthExpensesSum": round(expenses_sum, 2)
         })
 
     return render_template("index.html", users=users_data)
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('user_expenses_page'))
+    
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        
+        if User.query.filter_by(username=username).first():
+            flash('Имя пользователя уже занято')
+            return redirect(url_for('register'))
+            
+        user = User(username=username)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        login_user(user)
+        return redirect(url_for('user_expenses_page'))
+        
+    return render_template("register.html")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('user_expenses_page'))
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        user = User.query.filter_by(username=username).first()
+
+        if user and user.check_password(password):
+            login_user(user)
+            return redirect(url_for('user_expenses_page'))
+        
+        flash('Неверное имя пользователя или пароль')
+        return redirect(url_for('login'))
+
+    return render_template("login.html")
+
+@app.route("/logout")
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+
+@app.route("/expenses")
+@login_required
+def user_expenses_page():
+    # Only show expenses for the current logged in user
+    expenses_list = [e.to_dict() for e in current_user.expenses]
+    return render_template("expensesByUser.html", user=current_user, expenses=expenses_list)
 
 # --- USER ENDPOINTS ---
 
