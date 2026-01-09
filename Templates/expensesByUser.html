@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="static/css/styles.css">
+</head>
+<body>
+    <!-- Форма добавления/редактирования -->
+    <div class="container" id="expenseForm" style="display: none;">
+        <input type="hidden" id="editId">
+        <input class="block_element" type="date" id="inputDate" placeholder="Дата">
+        <input class="block_element" type="number" id="inputSum" placeholder="Сумма">
+        <input class="block_element" type="text" id="inputCategory" placeholder="Категория">
+        <input class="block_element" type="text" id="inputPayment" placeholder="Способ оплаты">
+        <input class="block_element" type="text" id="inputComment" placeholder="Комментарий">
+        <button id="saveBtn">Сохранить</button>
+        <button id="cancelBtn">Отмена</button>
+    </div>
+
+    <!-- Кнопка добавления -->
+    <div class="container">
+        <button id="addBtn">Добавить расход</button>
+    </div>
+
+    {% if expanses and expanses.len > 0 %}
+        <!-- Фильтры -->
+        <div class="container">
+            <input class="block_element" type="date" id="startDate">
+            <input class="block_element" type="date" id="endDate">
+            <input class="block_element" type="text" id="expanseCategory" placeholder="Категория">
+            <button id="acceptFilter">Применить</button>
+        </div>
+
+        <!-- Таблица -->
+        <table class="container" id="expansesTable">
+            <thead>
+                <tr>
+                    <th onclick="sortTable(0)">Дата ⇅</th>
+                    <th onclick="sortTable(1)">Сумма ⇅</th>
+                    <th onclick="sortTable(2)">Категория ⇅</th>
+                    <th onclick="sortTable(3)">Способ оплаты ⇅</th>
+                    <th>Комментарий</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <script>
+            let expansesData = {{ expanses|json }};
+            let currentSort = {col: -1, asc: true};
+
+            function renderTable(data) {
+                const tbody = document.querySelector('#expansesTable tbody');
+                tbody.innerHTML = data.map(item => `
+                    <tr>
+                        <td>${item.date}</td>
+                        <td>${item.sum}</td>
+                        <td>${item.category}</td>
+                        <td>${item.paymentMethod}</td>
+                        <td>${item.comment || ''}</td>
+                        <td>
+                            <button onclick="editExpense(${item.id})">✏️</button>
+                            <a href="/expanses/delete?id=${item.id}">❌</a>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            function sortTable(col) {
+                currentSort.asc = (currentSort.col === col) ? !currentSort.asc : true;
+                currentSort.col = col;
+                
+                expansesData.sort((a, b) => {
+                    const valA = Object.values(a)[col];
+                    const valB = Object.values(b)[col];
+                    return currentSort.asc ? 
+                        (valA > valB ? 1 : -1) : 
+                        (valA < valB ? 1 : -1);
+                });
+                renderTable(expansesData);
+            }
+
+            function filterExpenses() {
+                const category = document.getElementById("expanseCategory").value.toLowerCase();
+                const start = document.getElementById("startDate").value;
+                const end = document.getElementById("endDate").value;
+                
+                return expansesData.filter(e => 
+                    (!category || e.category.toLowerCase().includes(category)) &&
+                    (!start || e.date >= start) &&
+                    (!end || e.date <= end)
+                );
+            }
+
+            // Управление формой
+            document.getElementById('addBtn').onclick = () => {
+                document.getElementById('expenseForm').style.display = 'block';
+            };
+
+            document.getElementById('cancelBtn').onclick = () => {
+                document.getElementById('expenseForm').style.display = 'none';
+                document.getElementById('editId').value = '';
+            };
+
+            document.getElementById('saveBtn').onclick = () => {
+                const newExpense = {
+                    id: document.getElementById('editId').value || Date.now(),
+                    date: document.getElementById('inputDate').value,
+                    sum: document.getElementById('inputSum').value,
+                    category: document.getElementById('inputCategory').value,
+                    paymentMethod: document.getElementById('inputPayment').value,
+                    comment: document.getElementById('inputComment').value
+                };
+                
+                // Здесь должен быть AJAX-запрос на сервер
+                console.log('Сохранено:', newExpense);
+                document.getElementById('expenseForm').style.display = 'none';
+            };
+
+            function editExpense(id) {
+                const expense = expansesData.find(e => e.id == id);
+                if (expense) {
+                    document.getElementById('editId').value = expense.id;
+                    document.getElementById('inputDate').value = expense.date;
+                    document.getElementById('inputSum').value = expense.sum;
+                    document.getElementById('inputCategory').value = expense.category;
+                    document.getElementById('inputPayment').value = expense.paymentMethod;
+                    document.getElementById('inputComment').value = expense.comment || '';
+                    document.getElementById('expenseForm').style.display = 'block';
+                }
+            }
+
+            // Инициализация
+            document.getElementById("acceptFilter").onclick = () => {
+                renderTable(filterExpenses());
+            };
+            renderTable(expansesData);
+        </script>
+    {% else %}
+        <div class="container">
+            <p>Нет данных о расходах</p>
+        </div>
+    {% endif %}
+</body>
+</html>
