@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from datetime import datetime, timedelta
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_migrate import Migrate, upgrade
 from models import db, User, Expense
 
 #чтобы запустить введи:
@@ -11,9 +12,20 @@ app.config['SECRET_KEY'] = 'dev-secret-key' # Change this in production
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///expenses.db'
 
 db.init_app(app)
+migrate = Migrate(app, db)
 
 with app.app_context():
+    # Автоматическое применение миграций при старте (для разработки)
+    try:
+        upgrade()
+        print("Миграции применены успешно")
+    except Exception as e:
+        print(f"Миграции еще не созданы или ошибка: {e}")
     db.create_all()
+    
+    # Автоматическое заполнение БД тестовыми данными, если она пустая
+    from populate_db import populate_if_empty
+    populate_if_empty()
 
 login_manager = LoginManager()
 login_manager.login_view = 'login'
@@ -92,7 +104,42 @@ def logout():
 def user_expenses_page():
     # Only show expenses for the current logged in user
     expenses_list = [e.to_dict() for e in current_user.expenses]
-    return render_template("expensesByUser.html", user=current_user, expenses=expenses_list)
+    
+    # Calculate statistics
+    stats = {
+        'total_all_time': 0,
+        'total_month': 0,
+        'average': 0,
+        'count': len(current_user.expenses),
+        'most_popular_category': None,
+        'most_expensive': None
+    }
+    
+    if current_user.expenses:
+        # Calculate totals
+        now = datetime.utcnow()
+        month_ago = now - timedelta(days=30)
+        
+        stats['total_all_time'] = round(sum(e.amount for e in current_user.expenses), 2)
+        stats['total_month'] = round(sum(e.amount for e in current_user.expenses if e.date and e.date >= month_ago), 2)
+        stats['average'] = round(stats['total_all_time'] / len(current_user.expenses), 2)
+        
+        # Find most popular category
+        from collections import Counter
+        categories = [e.category for e in current_user.expenses if e.category]
+        if categories:
+            category_counts = Counter(categories)
+            stats['most_popular_category'] = category_counts.most_common(1)[0][0]
+        
+        # Find most expensive
+        most_expensive_expense = max(current_user.expenses, key=lambda e: e.amount)
+        stats['most_expensive'] = {
+            'amount': most_expensive_expense.amount,
+            'category': most_expensive_expense.category,
+            'date': most_expensive_expense.date.strftime('%d.%m.%Y') if most_expensive_expense.date else 'Не указана'
+        }
+    
+    return render_template("expensesByUser.html", user=current_user, expenses=expenses_list, stats=stats)
 
 # --- USER ENDPOINTS ---
 
