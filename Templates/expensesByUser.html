@@ -26,12 +26,16 @@
         <a href="{{ url_for('logout') }}">Выйти</a>
     </div>
 
-    {% if expenses and expenses|length > 0 %}
+    <!-- Таблица должна быть, даже если пустая, чтобы JS мог с ней работать, или скрыта -->
+    {# Удаляем проверку на expenses|length, чтобы блок фильтров и таблицы рендерился всегда (но скрывался JS если пусто)
+    #}
     <!-- Фильтры -->
-    <div class="container">
+    <div class="container" id="filtersContainer" {% if not expenses %}style="display:none" {% endif %}>
         <input class="block_element" type="date" id="startDate">
         <input class="block_element" type="date" id="endDate">
-        <input class="block_element" type="text" id="expanseCategory" placeholder="Категория">
+        <select class="block_element" id="expanseCategory">
+            <option value="">Все категории</option>
+        </select>
         <button id="acceptFilter">Применить</button>
     </div>
 
@@ -49,17 +53,59 @@
         </thead>
         <tbody></tbody>
     </table>
+    <div class="container" id="noDataMessage" {% if expenses %}style="display:none" {% endif %}>
+        <p>Нет данных о расходах</p>
+    </div>
 
     <script>
-        const expensesData = {{ expenses| tojson }};
+        const expensesData = {{ expenses| tojson if expenses else '[]' }};
         const userId = {{ user.id }};
         let currentSort = { col: -1, asc: true };
 
+        function updateCategoryDropdown() {
+            const select = document.getElementById('expanseCategory');
+            const currentVal = select.value;
+            // Get unique categories
+            const categories = [...new Set(expensesData.map(e => e.category))].sort();
+
+            select.innerHTML = '<option value="">Все категории</option>';
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                select.appendChild(option);
+            });
+            select.value = currentVal;
+
+            // Show/Hide filters based on data
+            const filterContainer = document.getElementById('filtersContainer');
+            const noDataMsg = document.getElementById('noDataMessage');
+            const table = document.getElementById('expansesTable');
+
+            if (expensesData.length > 0) {
+                if (filterContainer) filterContainer.style.display = 'block';
+                if (noDataMsg) noDataMsg.style.display = 'none';
+                if (table) table.style.display = 'table';
+            } else {
+                if (filterContainer) filterContainer.style.display = 'none';
+                if (table) table.style.display = 'none';
+                if (noDataMsg) noDataMsg.style.display = 'block';
+            }
+        }
+
+        function formatDate(isoString) {
+            if (!isoString) return '';
+            const date = new Date(isoString);
+            return date.toLocaleDateString('ru-RU'); // DD.MM.YYYY
+        }
+
         function renderTable(data) {
             const tbody = document.querySelector('#expansesTable tbody');
+            if (!tbody) return; // if table doesn't exist yet (though we ensure it does or handle empty)
+
             tbody.innerHTML = data.map(item => `
                     <tr>
-                        <td>${item.date}</td>
+                        <td>${formatDate(item.date)}</td>
                         <td>${item.amount}</td>
                         <td>${item.category}</td>
                         <td>${item.payment_method}</td>
@@ -70,13 +116,17 @@
                         </td>
                     </tr>
                 `).join('');
+
+            // Update dropdown only if we are rendering full dataset? 
+            // Better to update it on load or when data changes. 
+            // For now, let's call it on init.
         }
 
         function sortTable(col) {
             currentSort.asc = (currentSort.col === col) ? !currentSort.asc : true;
             currentSort.col = col;
 
-            expansesData.sort((a, b) => {
+            expensesData.sort((a, b) => {
                 const valA = Object.values(a)[col];
                 const valB = Object.values(b)[col];
                 return currentSort.asc ?
@@ -103,7 +153,8 @@
         }
 
         function filterExpenses() {
-            const category = document.getElementById("expanseCategory").value.toLowerCase();
+            const categorySelect = document.getElementById("expanseCategory");
+            const category = categorySelect ? categorySelect.value.toLowerCase() : '';
             const start = document.getElementById("startDate").value;
             const end = document.getElementById("endDate").value;
 
@@ -172,16 +223,18 @@
         }
 
         // Инициализация
-        document.getElementById("acceptFilter").onclick = () => {
-            renderTable(filterExpenses());
-        };
+        const filterBtn = document.getElementById("acceptFilter");
+        if (filterBtn) {
+            filterBtn.onclick = () => {
+                renderTable(filterExpenses());
+            };
+        }
+
+        // Initial setup
+        updateCategoryDropdown();
         renderTable(expensesData);
+
     </script>
-    {% else %}
-    <div class="container">
-        <p>Нет данных о расходах</p>
-    </div>
-    {% endif %}
 </body>
 
 </html>
