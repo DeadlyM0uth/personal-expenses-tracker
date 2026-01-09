@@ -8,36 +8,105 @@
 </head>
 
 <body>
-    <!-- Форма добавления/редактирования -->
-    <div class="container" id="expenseForm" style="display: none;">
-        <input type="hidden" id="editId">
-        <input class="block_element" type="date" id="inputDate" placeholder="Дата">
-        <input class="block_element" type="number" id="inputSum" placeholder="Сумма">
-        <input class="block_element" type="text" id="inputCategory" placeholder="Категория">
-        <input class="block_element" type="text" id="inputPayment" placeholder="Способ оплаты">
-        <input class="block_element" type="text" id="inputComment" placeholder="Комментарий">
-        <button id="saveBtn">Сохранить</button>
-        <button id="cancelBtn">Отмена</button>
+    <!-- Модальное окно для добавления/редактирования расхода -->
+    <div id="expenseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Добавить расход</h3>
+                <button class="modal-close" onclick="closeExpenseModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editId">
+                <input class="block_element" type="date" id="inputDate" placeholder="Дата">
+                <input class="block_element" type="number" id="inputSum" placeholder="Сумма">
+                <input class="block_element" type="text" id="inputCategory" placeholder="Категория">
+                <select class="block_element" id="inputPayment" required>
+                    <option value="">Выберите способ оплаты</option>
+                    <option value="Наличные">Наличные</option>
+                    <option value="Карта">Карта</option>
+                    <option value="Перевод">Перевод</option>
+                </select>
+                <input class="block_element" type="text" id="inputComment" placeholder="Комментарий">
+                <button id="saveBtn" class="block_element">Сохранить</button>
+            </div>
+        </div>
     </div>
 
-    <!-- Кнопка добавления -->
-    <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
-        <button id="addBtn">Добавить расход</button>
+    <!-- Модальное окно для фильтров -->
+    <div id="filterModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Фильтры</h3>
+                <button class="modal-close" onclick="closeFilterModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input class="block_element" type="date" id="startDate" placeholder="Дата от">
+                <input class="block_element" type="date" id="endDate" placeholder="Дата до">
+                <select class="block_element" id="expanseCategory">
+                    <option value="">Все категории</option>
+                </select>
+                <button id="acceptFilter" class="block_element">Применить</button>
+                <button onclick="resetFilters()" class="block_element"
+                    style="background: #555; border-color: #444;">Сбросить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кнопки управления -->
+    <div class="container dashboard-container"
+        style="display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+        <div style="display: flex; gap: 10px;">
+            <button id="addBtn">Добавить расход</button>
+            <button id="filterBtn" {% if not expenses %}style="display:none" {% endif %}>Фильтры</button>
+        </div>
         <a href="{{ url_for('logout') }}">Выйти</a>
     </div>
 
-    <!-- Таблица должна быть, даже если пустая, чтобы JS мог с ней работать, или скрыта -->
-    {# Удаляем проверку на expenses|length, чтобы блок фильтров и таблицы рендерился всегда (но скрывался JS если пусто)
-    #}
-    <!-- Фильтры -->
-    <div class="container" id="filtersContainer" {% if not expenses %}style="display:none" {% endif %}>
-        <input class="block_element" type="date" id="startDate">
-        <input class="block_element" type="date" id="endDate">
-        <select class="block_element" id="expanseCategory">
-            <option value="">Все категории</option>
-        </select>
-        <button id="acceptFilter">Применить</button>
+    <!-- Статистика -->
+    {% if stats.count > 0 %}
+    <div class="container dashboard-container">
+        <h3 style="margin: 0 0 15px 0;">Статистика</h3>
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-label">За месяц</div>
+                <div class="stat-value">{{ stats.total_month }} ₽</div>
+            </div>
+
+            <div class="stat-item">
+                <div class="stat-label">Всего</div>
+                <div class="stat-value">{{ stats.total_all_time }} ₽</div>
+            </div>
+
+            <div class="stat-item">
+                <div class="stat-label">Средний</div>
+                <div class="stat-value">{{ stats.average }} ₽</div>
+            </div>
+
+            <div class="stat-item">
+                <div class="stat-label">Количество</div>
+                <div class="stat-value">{{ stats.count }}</div>
+            </div>
+
+            {% if stats.most_popular_category %}
+            <div class="stat-item">
+                <div class="stat-label">Популярная категория</div>
+                <div class="stat-value" style="font-size: 14px; text-transform: capitalize;">{{
+                    stats.most_popular_category }}</div>
+            </div>
+            {% endif %}
+
+            {% if stats.most_expensive %}
+            <div class="stat-item">
+                <div class="stat-label">Самый дорогой</div>
+                <div class="stat-value">{{ stats.most_expensive.amount }} ₽</div>
+            </div>
+            {% endif %}
+        </div>
     </div>
+    {% endif %}
+
+
+
 
     <!-- Таблица -->
     <table class="container" id="expansesTable">
@@ -77,19 +146,19 @@
             });
             select.value = currentVal;
 
-            // Show/Hide filters based on data
-            const filterContainer = document.getElementById('filtersContainer');
+            // Show/Hide table and no data message
             const noDataMsg = document.getElementById('noDataMessage');
             const table = document.getElementById('expansesTable');
+            const filterBtn = document.getElementById('filterBtn');
 
             if (expensesData.length > 0) {
-                if (filterContainer) filterContainer.style.display = 'block';
                 if (noDataMsg) noDataMsg.style.display = 'none';
                 if (table) table.style.display = 'table';
+                if (filterBtn) filterBtn.style.display = 'inline-block';
             } else {
-                if (filterContainer) filterContainer.style.display = 'none';
                 if (table) table.style.display = 'none';
                 if (noDataMsg) noDataMsg.style.display = 'block';
+                if (filterBtn) filterBtn.style.display = 'none';
             }
         }
 
@@ -127,11 +196,33 @@
             currentSort.col = col;
 
             expensesData.sort((a, b) => {
-                const valA = Object.values(a)[col];
-                const valB = Object.values(b)[col];
-                return currentSort.asc ?
-                    (valA > valB ? 1 : -1) :
-                    (valA < valB ? 1 : -1);
+                let valA, valB;
+
+                // Get values based on column index
+                const keys = Object.keys(expensesData[0]);
+                const key = keys[col];
+
+                valA = a[key];
+                valB = b[key];
+
+                // Handle different data types
+                if (key === 'amount') {
+                    // Numeric comparison
+                    valA = parseFloat(valA) || 0;
+                    valB = parseFloat(valB) || 0;
+                } else if (key === 'date') {
+                    // Date comparison
+                    valA = new Date(valA).getTime() || 0;
+                    valB = new Date(valB).getTime() || 0;
+                } else {
+                    // String comparison
+                    valA = String(valA || '').toLowerCase();
+                    valB = String(valB || '').toLowerCase();
+                }
+
+                if (valA < valB) return currentSort.asc ? -1 : 1;
+                if (valA > valB) return currentSort.asc ? 1 : -1;
+                return 0;
             });
             renderTable(expensesData);
         }
@@ -165,15 +256,58 @@
             );
         }
 
-        // Управление формой
-        document.getElementById('addBtn').onclick = () => {
-            document.getElementById('expenseForm').style.display = 'block';
-        };
-
-        document.getElementById('cancelBtn').onclick = () => {
-            document.getElementById('expenseForm').style.display = 'none';
+        // Modal management
+        function openExpenseModal() {
+            document.getElementById('expenseModal').classList.add('show');
+            document.getElementById('modalTitle').textContent = 'Добавить расход';
             document.getElementById('editId').value = '';
-        };
+            document.getElementById('inputDate').value = '';
+            document.getElementById('inputSum').value = '';
+            document.getElementById('inputCategory').value = '';
+            document.getElementById('inputPayment').value = '';
+            document.getElementById('inputComment').value = '';
+        }
+
+        function closeExpenseModal() {
+            document.getElementById('expenseModal').classList.remove('show');
+            document.getElementById('editId').value = '';
+        }
+
+        function openFilterModal() {
+            document.getElementById('filterModal').classList.add('show');
+        }
+
+        function closeFilterModal() {
+            document.getElementById('filterModal').classList.remove('show');
+        }
+
+        function resetFilters() {
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('expanseCategory').value = '';
+            renderTable(expensesData);
+            closeFilterModal();
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function (event) {
+            const expenseModal = document.getElementById('expenseModal');
+            const filterModal = document.getElementById('filterModal');
+            if (event.target === expenseModal) {
+                closeExpenseModal();
+            }
+            if (event.target === filterModal) {
+                closeFilterModal();
+            }
+        }
+
+        // Button handlers
+        document.getElementById('addBtn').onclick = openExpenseModal;
+
+        const filterBtn = document.getElementById('filterBtn');
+        if (filterBtn) {
+            filterBtn.onclick = openFilterModal;
+        }
 
         document.getElementById('saveBtn').onclick = async () => {
             const id = document.getElementById('editId').value;
@@ -210,6 +344,7 @@
         function editExpense(id) {
             const expense = expensesData.find(e => e.id == id);
             if (expense) {
+                document.getElementById('modalTitle').textContent = 'Редактировать расход';
                 document.getElementById('editId').value = expense.id;
                 // Format date to ISO for input type date if needed, typically YYYY-MM-DD
                 // Our API returns ISO with time potentially. input type=date needs YYYY-MM-DD
@@ -218,15 +353,16 @@
                 document.getElementById('inputCategory').value = expense.category;
                 document.getElementById('inputPayment').value = expense.payment_method;
                 document.getElementById('inputComment').value = expense.comment || '';
-                document.getElementById('expenseForm').style.display = 'block';
+                document.getElementById('expenseModal').classList.add('show');
             }
         }
 
         // Инициализация
-        const filterBtn = document.getElementById("acceptFilter");
-        if (filterBtn) {
-            filterBtn.onclick = () => {
+        const filterAcceptBtn = document.getElementById("acceptFilter");
+        if (filterAcceptBtn) {
+            filterAcceptBtn.onclick = () => {
                 renderTable(filterExpenses());
+                closeFilterModal();
             };
         }
 

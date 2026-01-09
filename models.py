@@ -25,13 +25,21 @@ class User(UserMixin, db.Model):
 class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Float, nullable=False)
-    category = db.Column(db.String(100), nullable=False)
+    _category = db.Column('category', db.String(100), nullable=False)
     date = db.Column(db.DateTime, default=datetime.utcnow)
     comment = db.Column(db.String(200)) # "комментарием"
     payment_method = db.Column(db.String(50)) # "способом оплаты"
     
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     user = db.relationship('User', backref=db.backref('expenses', lazy=True))
+
+    @property
+    def category(self):
+        return self._category
+    
+    @category.setter
+    def category(self, value):
+        self._category = value.lower() if value else None
 
     def to_dict(self):
         return {
